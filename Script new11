@@ -1,0 +1,1152 @@
+-- Đặt trong StarterGui hoặc StarterPlayerScripts
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Hàm kiểm tra Velocity Client PC
+local function isVelocityClient()
+    local success, executorName = pcall(function()
+        return identifyexecutor and identifyexecutor() or "Unknown"
+    end)
+    if not success then
+        warn("Error checking executor: " .. tostring(executorName))
+        return false
+    end
+    if executorName == "Velocity" then
+        return true
+    end
+    return false
+end
+
+-- Nếu không phải Velocity, hiển thị cảnh báo và dừng
+if not isVelocityClient() then
+    local ScreenGui = Instance.new("ScreenGui")
+    local WarningLabel = Instance.new("TextLabel")
+    ScreenGui.Parent = player:WaitForChild("PlayerGui")
+    WarningLabel.Parent = ScreenGui
+    WarningLabel.Size = UDim2.new(0, 300, 0, 100)
+    WarningLabel.Position = UDim2.new(0.5, -150, 0.5, -50)
+    WarningLabel.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+    WarningLabel.Text = "This script only supports Velocity Client PC!"
+    WarningLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    WarningLabel.TextSize = 20
+    WarningLabel.TextWrapped = true
+    return
+end
+
+-- Thiết lập môi trường an toàn
+local function setupEnvironment()
+    print("Setting up environment...")
+    local success, err = pcall(function()
+        -- Thiết lập môi trường toàn cục
+        if not getgenv then
+            rawset(_G, "getgenv", function()
+                return _G
+            end)
+        end
+
+        -- Thiết lập các biến môi trường
+        getgenv()._G = _G
+        getgenv().shared = getgenv().shared or {}
+        getgenv().env = getfenv()
+
+        -- Ẩn dấu vết executor
+        if identifyexecutor then
+            local originalIdentify = identifyexecutor
+            getgenv().identifyexecutor = function()
+                return "Roblox"
+            end
+        end
+
+        -- Thiết lập các hàm an toàn
+        getgenv().getrawmetatable = getrawmetatable or function(t)
+            return debug.getmetatable(t)
+        end
+
+        getgenv().setreadonly = setreadonly or function(t, readonly)
+            local mt = getgenv().getrawmetatable(t)
+            if mt then
+                mt.__newindex = readonly and function() end or nil
+            end
+        end
+
+        getgenv().hookfunction = hookfunction or function(oldFunc, newFunc)
+            return newFunc
+        end
+
+        getgenv().newcclosure = newcclosure or function(f)
+            return f
+        end
+
+        getgenv().getnamecallmethod = getnamecallmethod or function()
+            return "InvokeServer"
+        end
+
+        -- Bảo vệ các hàm quan trọng
+        local protectedFunctions = {
+            "game", "workspace", "script", "shared", "_G", "Players", "ReplicatedStorage"
+        }
+        for _, name in ipairs(protectedFunctions) do
+            if getgenv()[name] then
+                getgenv().setreadonly(getgenv()[name], true)
+            end
+        end
+
+        -- Hook các hàm nhạy cảm để tránh bị phát hiện
+        local oldFireServer = Instance.new("RemoteEvent").FireServer
+        getgenv().hookfunction(oldFireServer, function(self, ...)
+            print("Intercepted FireServer call:", ...)
+            return oldFireServer(self, ...)
+        end)
+
+        local oldInvokeServer = Instance.new("RemoteFunction").InvokeServer
+        getgenv().hookfunction(oldInvokeServer, function(self, ...)
+            print("Intercepted InvokeServer call:", ...)
+            return oldInvokeServer(self, ...)
+        end)
+
+        -- Thiết lập môi trường sandbox
+        getgenv().sandbox = function(func)
+            local env = getgenv().env
+            setfenv(func, env)
+            return func
+        end
+    end)
+
+    if not success then
+        warn("Failed to setup environment: " .. tostring(err))
+        local ScreenGui = Instance.new("ScreenGui")
+        local WarningLabel = Instance.new("TextLabel")
+        ScreenGui.Parent = player:WaitForChild("PlayerGui")
+        WarningLabel.Parent = ScreenGui
+        WarningLabel.Size = UDim2.new(0, 300, 0, 100)
+        WarningLabel.Position = UDim2.new(0.5, -150, 0.5, -50)
+        WarningLabel.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+        WarningLabel.Text = "Failed to setup environment!"
+        WarningLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        WarningLabel.TextSize = 20
+        WarningLabel.TextWrapped = true
+        return false
+    end
+    print("Environment setup completed!")
+    return true
+end
+
+-- Thiết lập môi trường
+if not setupEnvironment() then
+    return
+end
+
+-- Toàn bộ mã nguồn của script (dùng để sao chép)
+local scriptSource = [[
+-- Đặt trong StarterGui hoặc StarterPlayerScripts
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- Hàm kiểm tra Velocity Client PC
+local function isVelocityClient()
+    local success, executorName = pcall(function()
+        return identifyexecutor and identifyexecutor() or "Unknown"
+    end)
+    if not success then
+        warn("Error checking executor: " .. tostring(executorName))
+        return false
+    end
+    if executorName == "Velocity" then
+        return true
+    end
+    return false
+end
+
+-- Nếu không phải Velocity, hiển thị cảnh báo và dừng
+if not isVelocityClient() then
+    local ScreenGui = Instance.new("ScreenGui")
+    local WarningLabel = Instance.new("TextLabel")
+    ScreenGui.Parent = player:WaitForChild("PlayerGui")
+    WarningLabel.Parent = ScreenGui
+    WarningLabel.Size = UDim2.new(0, 300, 0, 100)
+    WarningLabel.Position = UDim2.new(0.5, -150, 0.5, -50)
+    WarningLabel.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+    WarningLabel.Text = "This script only supports Velocity Client PC!"
+    WarningLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    WarningLabel.TextSize = 20
+    WarningLabel.TextWrapped = true
+    return
+end
+
+-- Thiết lập môi trường an toàn
+local function setupEnvironment()
+    print("Setting up environment...")
+    local success, err = pcall(function()
+        -- Thiết lập môi trường toàn cục
+        if not getgenv then
+            rawset(_G, "getgenv", function()
+                return _G
+            end)
+        end
+
+        -- Thiết lập các biến môi trường
+        getgenv()._G = _G
+        getgenv().shared = getgenv().shared or {}
+        getgenv().env = getfenv()
+
+        -- Ẩn dấu vết executor
+        if identifyexecutor then
+            local originalIdentify = identifyexecutor
+            getgenv().identifyexecutor = function()
+                return "Roblox"
+            end
+        end
+
+        -- Thiết lập các hàm an toàn
+        getgenv().getrawmetatable = getrawmetatable or function(t)
+            return debug.getmetatable(t)
+        end
+
+        getgenv().setreadonly = setreadonly or function(t, readonly)
+            local mt = getgenv().getrawmetatable(t)
+            if mt then
+                mt.__newindex = readonly and function() end or nil
+            end
+        end
+
+        getgenv().hookfunction = hookfunction or function(oldFunc, newFunc)
+            return newFunc
+        end
+
+        getgenv().newcclosure = newcclosure or function(f)
+            return f
+        end
+
+        getgenv().getnamecallmethod = getnamecallmethod or function()
+            return "InvokeServer"
+        end
+
+        -- Bảo vệ các hàm quan trọng
+        local protectedFunctions = {
+            "game", "workspace", "script", "shared", "_G", "Players", "ReplicatedStorage"
+        }
+        for _, name in ipairs(protectedFunctions) do
+            if getgenv()[name] then
+                getgenv().setreadonly(getgenv()[name], true)
+            end
+        end
+
+        -- Hook các hàm nhạy cảm để tránh bị phát hiện
+        local oldFireServer = Instance.new("RemoteEvent").FireServer
+        getgenv().hookfunction(oldFireServer, function(self, ...)
+            print("Intercepted FireServer call:", ...)
+            return oldFireServer(self, ...)
+        end)
+
+        local oldInvokeServer = Instance.new("RemoteFunction").InvokeServer
+        getgenv().hookfunction(oldInvokeServer, function(self, ...)
+            print("Intercepted InvokeServer call:", ...)
+            return oldInvokeServer(self, ...)
+        end)
+
+        -- Thiết lập môi trường sandbox
+        getgenv().sandbox = function(func)
+            local env = getgenv().env
+            setfenv(func, env)
+            return func
+        end
+    end)
+
+    if not success then
+        warn("Failed to setup environment: " .. tostring(err))
+        local ScreenGui = Instance.new("ScreenGui")
+        local WarningLabel = Instance.new("TextLabel")
+        ScreenGui.Parent = player:WaitForChild("PlayerGui")
+        WarningLabel.Parent = ScreenGui
+        WarningLabel.Size = UDim2.new(0, 300, 0, 100)
+        WarningLabel.Position = UDim2.new(0.5, -150, 0.5, -50)
+        WarningLabel.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+        WarningLabel.Text = "Failed to setup environment!"
+        WarningLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        WarningLabel.TextSize = 20
+        WarningLabel.TextWrapped = true
+        return false
+    end
+    print("Environment setup completed!")
+    return true
+end
+
+-- Thiết lập môi trường
+if not setupEnvironment() then
+    return
+end
+
+-- Tạo GUI với tối ưu hóa
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false -- Ngăn GUI reset khi nhân vật chết
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Name = "VelocityExecutor"
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 450, 0, 350) -- Sửa lỗi cú pháp (bỏ "A")
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+-- Thêm bo góc cho MainFrame
+local MainFrameCorner = Instance.new("UICorner")
+MainFrameCorner.CornerRadius = UDim.new(0, 10)
+MainFrameCorner.Parent = MainFrame
+
+-- Thêm gradient màu cho MainFrame
+local MainFrameGradient = Instance.new("UIGradient")
+MainFrameGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+})
+MainFrameGradient.Rotation = 45
+MainFrameGradient.Parent = MainFrame
+
+-- Thêm hình nền đẹp cho MainFrame
+local BackgroundImage = Instance.new("ImageLabel")
+BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
+BackgroundImage.Position = UDim2.new(0, 0, 0, 0)
+BackgroundImage.BackgroundTransparency = 1
+BackgroundImage.Image = "rbxassetid://5101350333" -- Hình nền trừu tượng đẹp
+BackgroundImage.ImageTransparency = 0.5
+BackgroundImage.Parent = MainFrame
+
+local TitleBar = Instance.new("TextLabel")
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TitleBar.Text = "Velocity Executor Shadow VERTEX"
+TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleBar.TextSize = 16
+TitleBar.Parent = MainFrame
+
+-- Thêm bo góc cho TitleBar
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 10)
+TitleBarCorner.Parent = TitleBar
+
+-- Thêm biểu tượng trên TitleBar
+local TitleIcon = Instance.new("ImageLabel")
+TitleIcon.Size = UDim2.new(0, 24, 0, 24)
+TitleIcon.Position = UDim2.new(0, 5, 0, 3)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Image = "rbxassetid://6034837798" -- Biểu tượng ngôi sao trắng
+TitleIcon.Parent = TitleBar
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -30, 0, 0)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Parent = TitleBar
+
+-- Thêm bo góc cho CloseButton
+local CloseButtonCorner = Instance.new("UICorner")
+CloseButtonCorner.CornerRadius = UDim.new(0, 5)
+CloseButtonCorner.Parent = CloseButton
+
+local ExecutorFrame = Instance.new("Frame")
+ExecutorFrame.Size = UDim2.new(1, 0, 1, -30)
+ExecutorFrame.Position = UDim2.new(0, 0, 0, 30)
+ExecutorFrame.BackgroundTransparency = 1
+ExecutorFrame.Parent = MainFrame
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(1, -20, 0, 200) -- Điều chỉnh theo kích thước MainFrame
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Text = "-- Velocity Executor SHADOW VERTEX\nprint('Hello!')"
+TextBox.MultiLine = true
+TextBox.TextSize = 14
+TextBox.ClearTextOnFocus = false
+TextBox.Parent = ExecutorFrame
+
+-- Thêm bo góc cho TextBox
+local TextBoxCorner = Instance.new("UICorner")
+TextBoxCorner.CornerRadius = UDim.new(0, 5)
+TextBoxCorner.Parent = TextBox
+
+local ExecuteButton = Instance.new("TextButton")
+ExecuteButton.Size = UDim2.new(0, 85, 0, 40)
+ExecuteButton.Position = UDim2.new(0, 10, 0, 220)
+ExecuteButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+ExecuteButton.Text = "Execute"
+ExecuteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExecuteButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho ExecuteButton
+local ExecuteButtonCorner = Instance.new("UICorner")
+ExecuteButtonCorner.CornerRadius = UDim.new(0, 5)
+ExecuteButtonCorner.Parent = ExecuteButton
+
+local ClearButton = Instance.new("TextButton")
+ClearButton.Size = UDim2.new(0, 85, 0, 40)
+ClearButton.Position = UDim2.new(0, 100, 0, 220)
+ClearButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+ClearButton.Text = "Clear"
+ClearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho ClearButton
+local ClearButtonCorner = Instance.new("UICorner")
+ClearButtonCorner.CornerRadius = UDim.new(0, 5)
+ClearButtonCorner.Parent = ClearButton
+
+local PasteButton = Instance.new("TextButton")
+PasteButton.Size = UDim2.new(0, 85, 0, 40)
+PasteButton.Position = UDim2.new(0, 190, 0, 220)
+PasteButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+PasteButton.Text = "Paste"
+PasteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+PasteButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho PasteButton
+local PasteButtonCorner = Instance.new("UICorner")
+PasteButtonCorner.CornerRadius = UDim.new(0, 5)
+PasteButtonCorner.Parent = PasteButton
+
+local CopyButton = Instance.new("TextButton")
+CopyButton.Size = UDim2.new(0, 85, 0, 40)
+CopyButton.Position = UDim2.new(0, 280, 0, 220)
+CopyButton.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
+CopyButton.Text = "Copy"
+CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho CopyButton
+local CopyButtonCorner = Instance.new("UICorner")
+CopyButtonCorner.CornerRadius = UDim.new(0, 5)
+CopyButtonCorner.Parent = CopyButton
+
+local OutputLabel = Instance.new("TextLabel")
+OutputLabel.Size = UDim2.new(1, -20, 0, 30) -- Điều chỉnh theo kích thước MainFrame
+OutputLabel.Position = UDim2.new(0, 10, 0, 260)
+OutputLabel.BackgroundTransparency = 1
+OutputLabel.Text = "Output: Ready"
+OutputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+OutputLabel.TextSize = 14
+OutputLabel.Parent = ExecutorFrame
+
+-- Tạo logo đẹp (có thể kéo thả, hiệu ứng phát sáng và xoay)
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0, 50, 0, 50)
+Logo.Position = UDim2.new(0, 10, 0, 10)
+Logo.BackgroundTransparency = 1
+Logo.Image = "rbxassetid://7072724" -- Logo đẹp (hình ngôi sao phát sáng)
+Logo.Parent = ScreenGui
+
+-- Thêm bo góc cho Logo
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(0, 25)
+LogoCorner.Parent = Logo
+
+-- Thêm hiệu ứng phát sáng cho Logo
+local GlowEffect = Instance.new("UIStroke")
+GlowEffect.Thickness = 2
+GlowEffect.Color = Color3.fromRGB(0, 255, 255)
+GlowEffect.Transparency = 0.5
+GlowEffect.Parent = Logo
+
+-- Hiệu ứng xoay cho Logo
+local function rotateLogo()
+    while true do
+        local tween = TweenService:Create(Logo, TweenInfo.new(5, Enum.EasingStyle.Linear), {Rotation = 360})
+        tween:Play()
+        tween.Completed:Wait()
+        Logo.Rotation = 0
+    end
+end
+coroutine.wrap(rotateLogo)()
+
+-- Tối ưu hóa kéo thả Logo
+local logoDragging, logoDragStart, logoStartPos
+local function updateLogoDrag(input)
+    if logoDragging then
+        local delta = input.Position - logoDragStart
+        Logo.Position = UDim2.new(logoStartPos.X.Scale, logoStartPos.X.Offset + delta.X, logoStartPos.Y.Scale, logoStartPos.Y.Offset + delta.Y)
+    end
+end
+
+Logo.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        logoDragging = true
+        logoDragStart = input.Position
+        logoStartPos = Logo.Position
+    end
+end)
+
+Logo.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        logoDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateLogoDrag(input)
+    end
+end)
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 70, 0, 10)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+ToggleButton.Text = "ON"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+ToggleButton.Parent = ScreenGui
+
+-- Thêm bo góc cho ToggleButton
+local ToggleButtonCorner = Instance.new("UICorner")
+ToggleButtonCorner.CornerRadius = UDim.new(0, 25)
+ToggleButtonCorner.Parent = ToggleButton
+
+-- Thêm biểu tượng cho ToggleButton
+local ToggleIcon = Instance.new("ImageLabel")
+ToggleIcon.Size = UDim2.new(0, 30, 0, 30)
+ToggleIcon.Position = UDim2.new(0.5, -15, 0.5, -15)
+ToggleIcon.BackgroundTransparency = 1
+ToggleIcon.Image = "rbxassetid://6034837798" -- Biểu tượng ngôi sao trắng
+ToggleIcon.Parent = ToggleButton
+
+-- Thêm Resize Handle (nút kéo to nhỏ)
+local ResizeHandle = Instance.new("TextButton")
+ResizeHandle.Size = UDim2.new(0, 15, 0, 15)
+ResizeHandle.Position = UDim2.new(1, -15, 1, -15)
+ResizeHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ResizeHandle.Text = ""
+ResizeHandle.Parent = MainFrame
+
+-- Thêm bo góc cho ResizeHandle
+local ResizeHandleCorner = Instance.new("UICorner")
+ResizeHandleCorner.CornerRadius = UDim.new(0, 5)
+ResizeHandleCorner.Parent = ResizeHandle
+
+-- Thêm hiệu ứng hover và click cho các nút
+local function addButtonEffects(button)
+    local originalColor = button.BackgroundColor3
+    local hoverColor = Color3.fromRGB(
+        math.min(originalColor.R * 255 + 20, 255),
+        math.min(originalColor.G * 255 + 20, 255),
+        math.min(originalColor.B * 255 + 20, 255)
+    )
+    local clickColor = Color3.fromRGB(
+        math.max(originalColor.R * 255 - 20, 0),
+        math.max(originalColor.G * 255 - 20, 0),
+        math.max(originalColor.B * 255 - 20, 0)
+    )
+
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
+    end)
+
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = originalColor}):Play()
+    end)
+
+    button.MouseButton1Down:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
+    end)
+
+    button.MouseButton1Up:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
+    end)
+end
+
+addButtonEffects(ExecuteButton)
+addButtonEffects(ClearButton)
+addButtonEffects(PasteButton)
+addButtonEffects(CopyButton)
+addButtonEffects(CloseButton)
+addButtonEffects(ToggleButton)
+
+-- Tối ưu hóa kéo thả GUI
+local dragging, dragStart, startPos
+local function updateDrag(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateDrag(input)
+    end
+end)
+
+-- Tối ưu hóa kéo to nhỏ GUI
+local resizing, resizeStart, startSize
+local minSize = Vector2.new(300, 250) -- Kích thước tối thiểu
+local function updateResize(input)
+    if resizing then
+        local delta = input.Position - resizeStart
+        local newWidth = math.max(minSize.X, startSize.X + delta.X)
+        local newHeight = math.max(minSize.Y, startSize.Y + delta.Y)
+        MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+        
+        -- Điều chỉnh vị trí các nút và OutputLabel
+        local buttonY = newHeight - 130 -- Cách đáy 130 pixel
+        ExecuteButton.Position = UDim2.new(0, 10, 0, buttonY)
+        ClearButton.Position = UDim2.new(0, 100, 0, buttonY)
+        PasteButton.Position = UDim2.new(0, 190, 0, buttonY)
+        CopyButton.Position = UDim2.new(0, 280, 0, buttonY)
+        OutputLabel.Position = UDim2.new(0, 10, 0, buttonY + 40)
+    end
+end
+
+ResizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = true
+        resizeStart = input.Position
+        startSize = Vector2.new(MainFrame.Size.X.Offset, MainFrame.Size.Y.Offset)
+    end
+end)
+
+ResizeHandle.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateResize(input)
+    end
+end)
+
+-- Hàm bật/tắt GUI
+local isGuiOpen = false
+local function toggleGui()
+    isGuiOpen = not isGuiOpen
+    MainFrame.Visible = isGuiOpen
+    ToggleButton.Text = isGuiOpen and "OFF" or "ON"
+    ToggleButton.BackgroundColor3 = isGuiOpen and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(0, 150, 255)
+end
+
+CloseButton.MouseButton1Click:Connect(toggleGui)
+ToggleButton.MouseButton1Click:Connect(toggleGui)
+
+-- Hàm thực thi script
+local function executeScript()
+    local scriptText = TextBox.Text
+    local func, err = loadstring(scriptText)
+    if func then
+        local success, result = pcall(getgenv().sandbox(func))
+        OutputLabel.Text = success and "Output: Executed successfully!" or "Output: Error - " .. tostring(result)
+    else
+        OutputLabel.Text = "Output: Syntax error - " .. tostring(err)
+    end
+end
+
+-- Hàm xóa text
+local function clearText()
+    TextBox.Text = ""
+    OutputLabel.Text = "Output: Text cleared"
+end
+
+-- Hàm sao chép (copy) - Sao chép toàn bộ script
+local function copyText()
+    local success, err = pcall(function()
+        if setclipboard then
+            setclipboard(scriptSource)
+            OutputLabel.Text = "Output: Script copied to clipboard!"
+        else
+            OutputLabel.Text = "Output: Clipboard not supported!"
+        end
+    end)
+    if not success then
+        warn("Error copying to clipboard: " .. tostring(err))
+        OutputLabel.Text = "Output: Failed to copy script!"
+    end
+end
+
+-- Hàm dán (paste)
+local function pasteText()
+    local success, clipboardText = pcall(function()
+        return getclipboard and getclipboard() or nil
+    end)
+    if success and clipboardText then
+        TextBox.Text = clipboardText
+        OutputLabel.Text = "Output: Pasted from clipboard!"
+    else
+        TextBox.Text = "-- Press Ctrl+V to paste\n" .. TextBox.Text
+        OutputLabel.Text = "Output: Paste not supported, use Ctrl+V!"
+    end
+end
+
+-- Sự kiện nút
+ExecuteButton.MouseButton1Click:Connect(executeScript)
+ClearButton.MouseButton1Click:Connect(clearText)
+PasteButton.MouseButton1Click:Connect(pasteText)
+CopyButton.MouseButton1Click:Connect(copyText)
+
+-- Phím tắt
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Return and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        executeScript()
+    elseif input.KeyCode == Enum.KeyCode.F1 then
+        toggleGui()
+    end
+end)
+]]
+
+-- Tạo GUI với tối ưu hóa
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false -- Ngăn GUI reset khi nhân vật chết
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Name = "VelocityExecutor"
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 450, 0, 350) -- Sửa lỗi cú pháp (bỏ "A")
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+-- Thêm bo góc cho MainFrame
+local MainFrameCorner = Instance.new("UICorner")
+MainFrameCorner.CornerRadius = UDim.new(0, 10)
+MainFrameCorner.Parent = MainFrame
+
+-- Thêm gradient màu cho MainFrame
+local MainFrameGradient = Instance.new("UIGradient")
+MainFrameGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+})
+MainFrameGradient.Rotation = 45
+MainFrameGradient.Parent = MainFrame
+
+-- Thêm hình nền đẹp cho MainFrame
+local BackgroundImage = Instance.new("ImageLabel")
+BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
+BackgroundImage.Position = UDim2.new(0, 0, 0, 0)
+BackgroundImage.BackgroundTransparency = 1
+BackgroundImage.Image = "rbxassetid://5101350333" -- Hình nền trừu tượng đẹp
+BackgroundImage.ImageTransparency = 0.5
+BackgroundImage.Parent = MainFrame
+
+local TitleBar = Instance.new("TextLabel")
+TitleBar.Size = UDim2.new(1, 0, 0, 30)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TitleBar.Text = "Velocity Executor Shadow VERTEX"
+TitleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleBar.TextSize = 16
+TitleBar.Parent = MainFrame
+
+-- Thêm bo góc cho TitleBar
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 10)
+TitleBarCorner.Parent = TitleBar
+
+-- Thêm biểu tượng trên TitleBar
+local TitleIcon = Instance.new("ImageLabel")
+TitleIcon.Size = UDim2.new(0, 24, 0, 24)
+TitleIcon.Position = UDim2.new(0, 5, 0, 3)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Image = "rbxassetid://6034837798" -- Biểu tượng ngôi sao trắng
+TitleIcon.Parent = TitleBar
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -30, 0, 0)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Parent = TitleBar
+
+-- Thêm bo góc cho CloseButton
+local CloseButtonCorner = Instance.new("UICorner")
+CloseButtonCorner.CornerRadius = UDim.new(0, 5)
+CloseButtonCorner.Parent = CloseButton
+
+local ExecutorFrame = Instance.new("Frame")
+ExecutorFrame.Size = UDim2.new(1, 0, 1, -30)
+ExecutorFrame.Position = UDim2.new(0, 0, 0, 30)
+ExecutorFrame.BackgroundTransparency = 1
+ExecutorFrame.Parent = MainFrame
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(1, -20, 0, 200) -- Điều chỉnh theo kích thước MainFrame
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Text = "-- Velocity Executor SHADOW VERTEX\nprint('Hello!')"
+TextBox.MultiLine = true
+TextBox.TextSize = 14
+TextBox.ClearTextOnFocus = false
+TextBox.Parent = ExecutorFrame
+
+-- Thêm bo góc cho TextBox
+local TextBoxCorner = Instance.new("UICorner")
+TextBoxCorner.CornerRadius = UDim.new(0, 5)
+TextBoxCorner.Parent = TextBox
+
+local ExecuteButton = Instance.new("TextButton")
+ExecuteButton.Size = UDim2.new(0, 85, 0, 40)
+ExecuteButton.Position = UDim2.new(0, 10, 0, 220)
+ExecuteButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+ExecuteButton.Text = "Execute"
+ExecuteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExecuteButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho ExecuteButton
+local ExecuteButtonCorner = Instance.new("UICorner")
+ExecuteButtonCorner.CornerRadius = UDim.new(0, 5)
+ExecuteButtonCorner.Parent = ExecuteButton
+
+local ClearButton = Instance.new("TextButton")
+ClearButton.Size = UDim2.new(0, 85, 0, 40)
+ClearButton.Position = UDim2.new(0, 100, 0, 220)
+ClearButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+ClearButton.Text = "Clear"
+ClearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ClearButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho ClearButton
+local ClearButtonCorner = Instance.new("UICorner")
+ClearButtonCorner.CornerRadius = UDim.new(0, 5)
+ClearButtonCorner.Parent = ClearButton
+
+local PasteButton = Instance.new("TextButton")
+PasteButton.Size = UDim2.new(0, 85, 0, 40)
+PasteButton.Position = UDim2.new(0, 190, 0, 220)
+PasteButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+PasteButton.Text = "Paste"
+PasteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+PasteButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho PasteButton
+local PasteButtonCorner = Instance.new("UICorner")
+PasteButtonCorner.CornerRadius = UDim.new(0, 5)
+PasteButtonCorner.Parent = PasteButton
+
+local CopyButton = Instance.new("TextButton")
+CopyButton.Size = UDim2.new(0, 85, 0, 40)
+CopyButton.Position = UDim2.new(0, 280, 0, 220)
+CopyButton.BackgroundColor3 = Color3.fromRGB(0, 191, 255)
+CopyButton.Text = "Copy"
+CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyButton.Parent = ExecutorFrame
+
+-- Thêm bo góc cho CopyButton
+local CopyButtonCorner = Instance.new("UICorner")
+CopyButtonCorner.CornerRadius = UDim.new(0, 5)
+CopyButtonCorner.Parent = CopyButton
+
+local OutputLabel = Instance.new("TextLabel")
+OutputLabel.Size = UDim2.new(1, -20, 0, 30) -- Điều chỉnh theo kích thước MainFrame
+OutputLabel.Position = UDim2.new(0, 10, 0, 260)
+OutputLabel.BackgroundTransparency = 1
+OutputLabel.Text = "Output: Ready"
+OutputLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+OutputLabel.TextSize = 14
+OutputLabel.Parent = ExecutorFrame
+
+-- Tạo logo đẹp (có thể kéo thả, hiệu ứng phát sáng và xoay)
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0, 50, 0, 50)
+Logo.Position = UDim2.new(0, 10, 0, 10)
+Logo.BackgroundTransparency = 1
+Logo.Image = "rbxassetid://7072724" -- Logo đẹp (hình ngôi sao phát sáng)
+Logo.Parent = ScreenGui
+
+-- Thêm bo góc cho Logo
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(0, 25)
+LogoCorner.Parent = Logo
+
+-- Thêm hiệu ứng phát sáng cho Logo
+local GlowEffect = Instance.new("UIStroke")
+GlowEffect.Thickness = 2
+GlowEffect.Color = Color3.fromRGB(0, 255, 255)
+GlowEffect.Transparency = 0.5
+GlowEffect.Parent = Logo
+
+-- Hiệu ứng xoay cho Logo
+local function rotateLogo()
+    while true do
+        local tween = TweenService:Create(Logo, TweenInfo.new(5, Enum.EasingStyle.Linear), {Rotation = 360})
+        tween:Play()
+        tween.Completed:Wait()
+        Logo.Rotation = 0
+    end
+end
+coroutine.wrap(rotateLogo)()
+
+-- Tối ưu hóa kéo thả Logo
+local logoDragging, logoDragStart, logoStartPos
+local function updateLogoDrag(input)
+    if logoDragging then
+        local delta = input.Position - logoDragStart
+        Logo.Position = UDim2.new(logoStartPos.X.Scale, logoStartPos.X.Offset + delta.X, logoStartPos.Y.Scale, logoStartPos.Y.Offset + delta.Y)
+    end
+end
+
+Logo.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        logoDragging = true
+        logoDragStart = input.Position
+        logoStartPos = Logo.Position
+    end
+end)
+
+Logo.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        logoDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateLogoDrag(input)
+    end
+end)
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+ToggleButton.Position = UDim2.new(0, 70, 0, 10)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+ToggleButton.Text = "ON"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+ToggleButton.Parent = ScreenGui
+
+-- Thêm bo góc cho ToggleButton
+local ToggleButtonCorner = Instance.new("UICorner")
+ToggleButtonCorner.CornerRadius = UDim.new(0, 25)
+ToggleButtonCorner.Parent = ToggleButton
+
+-- Thêm biểu tượng cho ToggleButton
+local ToggleIcon = Instance.new("ImageLabel")
+ToggleIcon.Size = UDim2.new(0, 30, 0, 30)
+ToggleIcon.Position = UDim2.new(0.5, -15, 0.5, -15)
+ToggleIcon.BackgroundTransparency = 1
+ToggleIcon.Image = "rbxassetid://6034837798" -- Biểu tượng ngôi sao trắng
+ToggleIcon.Parent = ToggleButton
+
+-- Thêm Resize Handle (nút kéo to nhỏ)
+local ResizeHandle = Instance.new("TextButton")
+ResizeHandle.Size = UDim2.new(0, 15, 0, 15)
+ResizeHandle.Position = UDim2.new(1, -15, 1, -15)
+ResizeHandle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ResizeHandle.Text = ""
+ResizeHandle.Parent = MainFrame
+
+-- Thêm bo góc cho ResizeHandle
+local ResizeHandleCorner = Instance.new("UICorner")
+ResizeHandleCorner.CornerRadius = UDim.new(0, 5)
+ResizeHandleCorner.Parent = ResizeHandle
+
+-- Thêm hiệu ứng hover và click cho các nút
+local function addButtonEffects(button)
+    local originalColor = button.BackgroundColor3
+    local hoverColor = Color3.fromRGB(
+        math.min(originalColor.R * 255 + 20, 255),
+        math.min(originalColor.G * 255 + 20, 255),
+        math.min(originalColor.B * 255 + 20, 255)
+    )
+    local clickColor = Color3.fromRGB(
+        math.max(originalColor.R * 255 - 20, 0),
+        math.max(originalColor.G * 255 - 20, 0),
+        math.max(originalColor.B * 255 - 20, 0)
+    )
+
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
+    end)
+
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = originalColor}):Play()
+    end)
+
+    button.MouseButton1Down:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
+    end)
+
+    button.MouseButton1Up:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
+    end)
+end
+
+addButtonEffects(ExecuteButton)
+addButtonEffects(ClearButton)
+addButtonEffects(PasteButton)
+addButtonEffects(CopyButton)
+addButtonEffects(CloseButton)
+addButtonEffects(ToggleButton)
+
+-- Tối ưu hóa kéo thả GUI
+local dragging, dragStart, startPos
+local function updateDrag(input)
+    if dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateDrag(input)
+    end
+end)
+
+-- Tối ưu hóa kéo to nhỏ GUI
+local resizing, resizeStart, startSize
+local minSize = Vector2.new(300, 250) -- Kích thước tối thiểu
+local function updateResize(input)
+    if resizing then
+        local delta = input.Position - resizeStart
+        local newWidth = math.max(minSize.X, startSize.X + delta.X)
+        local newHeight = math.max(minSize.Y, startSize.Y + delta.Y)
+        MainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+        
+        -- Điều chỉnh vị trí các nút và OutputLabel
+        local buttonY = newHeight - 130 -- Cách đáy 130 pixel
+        ExecuteButton.Position = UDim2.new(0, 10, 0, buttonY)
+        ClearButton.Position = UDim2.new(0, 100, 0, buttonY)
+        PasteButton.Position = UDim2.new(0, 190, 0, buttonY)
+        CopyButton.Position = UDim2.new(0, 280, 0, buttonY)
+        OutputLabel.Position = UDim2.new(0, 10, 0, buttonY + 40)
+    end
+end
+
+ResizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = true
+        resizeStart = input.Position
+        startSize = Vector2.new(MainFrame.Size.X.Offset, MainFrame.Size.Y.Offset)
+    end
+end)
+
+ResizeHandle.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateResize(input)
+    end
+end)
+
+-- Hàm bật/tắt GUI
+local isGuiOpen = false
+local function toggleGui()
+    isGuiOpen = not isGuiOpen
+    MainFrame.Visible = isGuiOpen
+    ToggleButton.Text = isGuiOpen and "OFF" or "ON"
+    ToggleButton.BackgroundColor3 = isGuiOpen and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(0, 150, 255)
+end
+
+CloseButton.MouseButton1Click:Connect(toggleGui)
+ToggleButton.MouseButton1Click:Connect(toggleGui)
+
+-- Hàm thực thi script
+local function executeScript()
+    local scriptText = TextBox.Text
+    local func, err = loadstring(scriptText)
+    if func then
+        local success, result = pcall(getgenv().sandbox(func))
+        OutputLabel.Text = success and "Output: Executed successfully!" or "Output: Error - " .. tostring(result)
+    else
+        OutputLabel.Text = "Output: Syntax error - " .. tostring(err)
+    end
+end
+
+-- Hàm xóa text
+local function clearText()
+    TextBox.Text = ""
+    OutputLabel.Text = "Output: Text cleared"
+end
+
+-- Hàm sao chép (copy) - Sao chép toàn bộ script
+local function copyText()
+    local success, err = pcall(function()
+        if setclipboard then
+            setclipboard(scriptSource)
+            OutputLabel.Text = "Output: Script copied to clipboard!"
+        else
+            OutputLabel.Text = "Output: Clipboard not supported!"
+        end
+    end)
+    if not success then
+        warn("Error copying to clipboard: " .. tostring(err))
+        OutputLabel.Text = "Output: Failed to copy script!"
+    end
+end
+
+-- Hàm dán (paste)
+local function pasteText()
+    local success, clipboardText = pcall(function()
+        return getclipboard and getclipboard() or nil
+    end)
+    if success and clipboardText then
+        TextBox.Text = clipboardText
+        OutputLabel.Text = "Output: Pasted from clipboard!"
+    else
+        TextBox.Text = "-- Press Ctrl+V to paste\n" .. TextBox.Text
+        OutputLabel.Text = "Output: Paste not supported, use Ctrl+V!"
+    end
+end
+
+-- Sự kiện nút
+ExecuteButton.MouseButton1Click:Connect(executeScript)
+ClearButton.MouseButton1Click:Connect(clearText)
+PasteButton.MouseButton1Click:Connect(pasteText)
+CopyButton.MouseButton1Click:Connect(copyText)
+
+-- Phím tắt
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Return and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        executeScript()
+    elseif input.KeyCode == Enum.KeyCode.F1 then
+        toggleGui()
+    end
+end)
